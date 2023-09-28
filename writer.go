@@ -106,12 +106,15 @@ func (w *Writer) parseLogEvent(data []byte) (*sentry.Event, bool) {
 		Extra:     map[string]interface{}{},
 	}
 
+	var message string
+	var exceptions []sentry.Exception
+
 	err := jsonparser.ObjectEach(data, func(key, value []byte, vt jsonparser.ValueType, offset int) error {
 		switch string(key) {
 		case zerolog.MessageFieldName:
-			event.Message = bytesToStrUnsafe(value)
+			message = bytesToStrUnsafe(value)
 		case zerolog.ErrorFieldName:
-			event.Exception = append(event.Exception, sentry.Exception{
+			exceptions = append(exceptions, sentry.Exception{
 				Value:      bytesToStrUnsafe(value),
 				Stacktrace: newStacktrace(),
 			})
@@ -124,6 +127,12 @@ func (w *Writer) parseLogEvent(data []byte) (*sentry.Event, bool) {
 	})
 	if err != nil {
 		return nil, false
+	}
+
+	event.Message = message
+	for _, exc := range exceptions {
+		exc.Type = message
+		event.Exception = append(event.Exception, exc)
 	}
 
 	return &event, true
