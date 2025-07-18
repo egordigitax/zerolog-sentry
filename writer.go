@@ -119,21 +119,14 @@ func (w *Writer) parseLogEvent(data []byte) (*sentry.Event, bool) {
 				Stacktrace: newStacktrace(),
 			})
 		case zerolog.LevelFieldName, zerolog.TimestampFieldName:
+		case "user_id":
+			if event.User.ID == "" {
+		            event.User.ID = bytesToStrUnsafe(value)
+		        }
+		        event.Extra["user_id"] = bytesToStrUnsafe(value)
 		default:
-			fieldName := string(key)
-			fieldValue := bytesToStrUnsafe(value)
-		
-			// Отправлять user_id как тег в Sentry
-			if fieldName == "user_id" {
-				if event.Tags == nil {
-					event.Tags = make(map[string]string)
-				}
-				event.Tags["user_id"] = fieldValue
-			}
-		
-			event.Extra[fieldName] = fieldValue
+		        event.Extra[string(key)] = bytesToStrUnsafe(value)
 		}
-
 		return nil
 	})
 	if err != nil {
