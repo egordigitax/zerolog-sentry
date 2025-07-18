@@ -1,4 +1,4 @@
-module github.com/lexx13/zerolog-sentry
+module github.com/egordigitax/zerolog-sentry
 
 go 1.20
 
