@@ -113,19 +113,21 @@ func (w *Writer) parseLogEvent(data []byte) (*sentry.Event, bool) {
 		switch string(key) {
 		case zerolog.MessageFieldName:
 			message = bytesToStrUnsafe(value)
+			event.Fingerprint = append(event.Fingerprint, bytesToStrUnsafe(value))
 		case zerolog.ErrorFieldName:
 			exceptions = append(exceptions, sentry.Exception{
 				Value:      bytesToStrUnsafe(value),
 				Stacktrace: newStacktrace(),
 			})
+			event.Fingerprint = append(event.Fingerprint, bytesToStrUnsafe(value))
 		case zerolog.LevelFieldName, zerolog.TimestampFieldName:
 		case "user_id":
 			if event.User.ID == "" {
-		            event.User.ID = bytesToStrUnsafe(value)
-		        }
-		        event.Extra["user_id"] = bytesToStrUnsafe(value)
+				event.User.ID = bytesToStrUnsafe(value)
+			}
+			event.Extra["user_id"] = bytesToStrUnsafe(value)
 		default:
-		        event.Extra[string(key)] = bytesToStrUnsafe(value)
+			event.Extra[string(key)] = bytesToStrUnsafe(value)
 		}
 		return nil
 	})
