@@ -126,6 +126,8 @@ func (w *Writer) parseLogEvent(data []byte) (*sentry.Event, bool) {
 				event.User.ID = bytesToStrUnsafe(value)
 			}
 			event.Extra["user_id"] = bytesToStrUnsafe(value)
+		case "fingerprint":
+			event.Fingerprint = []string{bytesToStrUnsafe(value)}
 		default:
 			event.Extra[string(key)] = bytesToStrUnsafe(value)
 		}
