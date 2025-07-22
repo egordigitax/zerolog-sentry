@@ -103,38 +103,44 @@ func (w *Writer) parseLogEvent(data []byte) (*sentry.Event, bool) {
 	event := sentry.Event{
 		Timestamp: now(),
 		Logger:    logger,
-		Extra:     map[string]interface{}{},
+		Extra:     make(map[string]interface{}),
 	}
 
-	var message string
-	var exceptions []sentry.Exception
+	var (
+		message    string
+		exceptions []sentry.Exception
+	)
 
 	err := jsonparser.ObjectEach(data, func(key, value []byte, vt jsonparser.ValueType, offset int) error {
+		val := bytesToStrUnsafe(value)
 		switch string(key) {
 		case zerolog.MessageFieldName:
-			message = bytesToStrUnsafe(value)
-			event.Fingerprint = append(event.Fingerprint, bytesToStrUnsafe(value))
+			message = val
+			event.Fingerprint = append(event.Fingerprint, val)
 		case zerolog.ErrorFieldName:
 			exceptions = append(exceptions, sentry.Exception{
-				Value:      bytesToStrUnsafe(value),
+				Value:      val,
 				Stacktrace: newStacktrace(),
 			})
-			event.Fingerprint = append(event.Fingerprint, bytesToStrUnsafe(value))
+			event.Fingerprint = append(event.Fingerprint, val)
 		case zerolog.LevelFieldName, zerolog.TimestampFieldName:
+			// skip
 		case "user_id":
 			if event.User.ID == "" {
-				event.User.ID = bytesToStrUnsafe(value)
+				event.User.ID = val
 			}
-			event.Extra["user_id"] = bytesToStrUnsafe(value)
-		case "fingerprint":
-			event.Fingerprint = []string{bytesToStrUnsafe(value)}
+			event.Extra["user_id"] = val
 		default:
-			event.Extra[string(key)] = bytesToStrUnsafe(value)
+			event.Extra[string(key)] = val
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, false
+	}
+
+	if fingerprint, err := jsonparser.GetString(data, "fingerprint"); err == nil && fingerprint != "" {
+		event.Fingerprint = []string{fingerprint}
 	}
 
 	event.Message = message
